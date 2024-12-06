@@ -1,0 +1,755 @@
+package ca.mcgill.ecse321.cooperator9.dao;
+
+import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.LinkedHashSet;
+//import java.util.List;					//Removed in exchange for CRUD interfaces.
+import java.util.Set;
+
+import javax.persistence.EntityManager;
+//import javax.persistence.TypedQuery;		//Removed in exchange for CRUD interfaces.
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
+import ca.mcgill.ecse321.cooperator9.model.CoOperatorUser;
+import ca.mcgill.ecse321.cooperator9.model.EmployeeProfile;
+import ca.mcgill.ecse321.cooperator9.model.Employer;
+import ca.mcgill.ecse321.cooperator9.model.EmploymentContract;
+import ca.mcgill.ecse321.cooperator9.model.EmploymentStatus;
+import ca.mcgill.ecse321.cooperator9.model.Invitation;
+import ca.mcgill.ecse321.cooperator9.model.LoginCredentials;
+import ca.mcgill.ecse321.cooperator9.model.SocialEvent;
+import ca.mcgill.ecse321.cooperator9.model.Student;
+import ca.mcgill.ecse321.cooperator9.model.StudentEvaluationForm;
+import ca.mcgill.ecse321.cooperator9.model.TaxForm;
+import ca.mcgill.ecse321.cooperator9.model.VerificationState;
+import ca.mcgill.ecse321.cooperator9.model.AttendanceStatus;
+
+
+/**
+ * 
+ * 		@author Agent-Bennette (Edwin Pan)
+ * 		Last updated on 2019-02-16-20:34
+ * 
+ * 		CoOperatorRepository class
+ * 		
+ * 			This class provides a set of the non-CRUD based interactions with the database.
+ * 			It uses EntityManager to persist and find data.
+ * 
+ * 			The class is host to methods which generate classes based on input data. Because of the implementation
+ * 			of object instantiation of model classes here, this class also has the added functionality of providing
+ * 			the means to create model-class objects without having EntityManager persist. To do this, one can
+ * 			instantiate this class manually as an object, then use the method setAutomaticPresistence(false) to
+ * 			disable automatic persistence.
+ *
+ */
+@Repository
+public class CoOperatorRepository {
+
+	/*
+	 * 		CoOperatorRepository OBJECT CONSTANTS
+	 * 
+	 * 		- INTERNALPERSIST:	Boolean value for whether or not entityManager will persist data.
+	 * 							This is useful in cases where we want to use the methods in this class that
+	 * 							generate new .model Objects, but do not want to use entityManager to persist it.
+	 */
+	private boolean INTERNALLYPERSIST = true;
+	/**
+	 * Constructor method for one-line non-persisting variant instantiation.
+	 * 	That is to say that should one want this class purely for its creation capabilities, they can do so by
+	 * 	inputting FALSE as an argument in the constructor.
+	 * @param INTERNALLYPERSISTINGSTATE
+	 */
+//	public CoOperatorRepository( boolean INTERNALLYPERSIST ) {
+//		super();
+//		this.INTERNALLYPERSIST = INTERNALLYPERSIST;
+//	}
+	/**
+	 * setAutomaticPersistence method: Sets whether or not the coOperatorRepository will automatically persist created entities.
+	 * @param willPersistEntities	boolean value of whether or not this object will automatically persist entities. By default, this is true.
+	 */
+	public void setAutomaticPersistence(boolean willPersistEntities) {	this.INTERNALLYPERSIST = willPersistEntities; }
+	/**
+	 * getAutomaticPersistenceStatus method: Returns whether or not entities are automatically being persisted.
+	 * @return	boolean logic of whether or not entities are being persisted by EntityManager when created.
+	 */
+	public boolean getAutomaticPersistenceStatus() { return this.INTERNALLYPERSIST ; }
+	
+	
+	/*
+	 * =================================================================================================================
+	 * 
+	 * 		ENTITYMANAGER
+	 * 
+	 * 		The EntityManager is responsible for all interactions with entities. Everything that is persistent is an
+	 * 		entity, so it is essential to understand how to use the methods of the EntityManager to deal with the repo.
+	 * =================================================================================================================
+	 */
+	@Autowired	//Indicates that Spring Boot will find entityManager in the Spring Boot container (memory) for us.
+	EntityManager entityManager;
+	
+	
+	
+	/*
+	 * =================================================================================================================
+	 * 
+	 * 		METHODS FOR Employer ENTITIES
+	 * 
+	 * =================================================================================================================
+	 */
+	
+	/**
+	 * helper generateEmployerId methods: Create a unique long ID for each employer entity.
+	 * 	Generates the userId for employers.
+	 * @param company String, which is assumed to be not null
+	 * @return userId in the form of a long.
+	 */
+	private long generateEmployerId(String company) {
+		return company.hashCode();
+	}
+	/**
+	 * helper generateEmployerId methods: Create a unique long ID for each employer entity.
+	 * 	Generates the userId for employers.
+	 * @param company String, which is assumed to be not null
+	 * @param firstName String, which is assumed to be not null
+	 * @param lastName String, which is assumed to be not null
+	 * @return userId in the form of a long.
+	 */
+	private long generateEmployerId(String company, String firstName, String lastName) {
+		return company.hashCode()+firstName.hashCode()+lastName.hashCode();
+	}
+	
+	/**
+	 * HELPER createEmployer method: Creates an Employer object outside of the scope of Spring Boot, then instructs
+	 * 	EntityManger, which is in the Spring Boot frame, to contain and persist it.
+	 * @param company name as a String
+	 * @return	Employer object as the Employer Object type.
+	 */
+	@Transactional //Indicates that if there's an error during execution of the method, abandon all progress.
+	private Employer createEmployer(String company) {
+		//Safety Check
+		if(company == null)
+			throw new NullPointerException("createEmployer argument \'company\' is null.");
+		if(company.equals(""))
+			throw new IllegalStateException("createEmployer argument \'company\' cannot be empty!");
+		//Actual creating
+		Employer employer = new Employer();
+		employer.setCompany(company);
+		employer.setId(generateEmployerId(company));		//Primary Key!
+		employer.setEmployees(new LinkedHashSet<EmployeeProfile>());
+		employer.setInvitations(new LinkedHashSet<Invitation>());
+<<<<<<< Updated upstream
+=======
+		//employer.setTaxForms(new LinkedHashSet<TaxForm>());
+>>>>>>> Stashed changes
+		if(INTERNALLYPERSIST) entityManager.persist(employer);
+		return employer;
+	}
+	@Transactional
+	public Employer createEmployer(String company, String firstName, String lastName ) {
+		//Safety Checks (Excluding Company checking, since this is checked by the createEmployer(String) method
+		if(firstName == null)
+			throw new NullPointerException("createEmployer argument \'firstName\' is null.");
+		if(firstName.equals(""))
+			throw new IllegalStateException("createEmployer method parametre \'firstName\' cannot be empty!");
+		if(lastName == null)
+			throw new NullPointerException("createEmployer argument \'lastName\' is null.");
+		if(lastName.equals(""))
+			throw new IllegalStateException("createEmployer method parametre \'lastName\' cannot be empty!");
+		//Actual creating
+		Employer employer = createEmployer(company);
+		employer.setFirstName(firstName);
+		employer.setLastName(lastName);
+		//employer.setId(generateEmployerId(company,firstName,lastName));	//New Primary Key!
+		return employer;
+	}
+	
+	/**
+	 * getEmployer method: Finds the Employer Entity desired in the Spring Boot container.
+	 * 	It is essential to know whether or not a firstname and lastname exist in the employer data.
+	 * @param company name as a String
+	 * @return employer as an Employer object
+	 */
+	@Transactional //Indicates that the operation is grasp-all/lose-all.
+	public Employer getEmployer(String company) {
+		//Safety Check
+		if(company == null)
+			throw new NullPointerException("getEmployer argument \'company\' is null.");
+		if(company.equals(""))
+			throw new IllegalStateException("getEmployer method parametre \'company\' cannot be empty!");
+		//Returns
+		return entityManager.find(Employer.class, generateEmployerId(company));
+	}
+	@Transactional //Indicates that the operation is grasp-all/lose-all.
+	public Employer getEmployer(String company, String firstName, String lastName) {
+		//Safety
+		if(company == null)
+			throw new NullPointerException("getEmployer argument \'company\' is null.");
+		if(company.equals(""))
+			throw new IllegalStateException("getEmployer method parametre \'company\' cannot be empty!");
+		if(firstName == null)
+			throw new NullPointerException("getEmployer argument \'firstName\' is null.");
+		if(firstName.equals("") || firstName == null)
+			throw new IllegalStateException("getEmployer method parametre \'firstName\' cannot be empty!");
+		if(lastName == null)
+			throw new NullPointerException("getEmployer argument \'lastName\' is null.");
+		if(lastName.equals("") || lastName == null)
+			throw new IllegalStateException("getEmployer method parametre \'lastName\' cannot be empty!");
+		//Returns
+		return entityManager.find(Employer.class, generateEmployerId(company,firstName,lastName));
+	}
+	
+	
+	
+	/*
+	 * =================================================================================================================
+	 * 
+	 * 		METHODS FOR Student ENTITIES
+	 * 
+	 * 		Note that we are implementing a student-representation for testing functionality, not true functionality.
+	 * 
+	 * =================================================================================================================
+	 */
+	
+	/**
+	 * createStudent method: Creates (and saves?) a new student object based on received parametres.
+	 * @param 	student	as a Student object, implemented by Team 1
+	 * @return	Student now object persisting in the database.
+	 */
+	@Transactional
+	public Student createStudent(long studentId, String firstName, String lastName) {
+		//Safety
+		if(firstName==null)
+			throw new NullPointerException("createStudent method parametre \'firstName\' cannot be null.");
+		if(firstName.equals(""))
+			throw new IllegalArgumentException("createStudent method parametre \'firstName\' cannot be empty.");
+		if(lastName==null)
+			throw new NullPointerException("createStudent method parametre \'lastName\' cannot be null.");
+		if(lastName.equals(""))
+			throw new IllegalArgumentException("createStudent method parametre \'lastName\' cannot be empty.");
+		//Creation
+		Student student = new Student();
+		student.setId(studentId);
+		student.setFirstName(firstName);
+		student.setLastName(lastName);
+		student.setEmployeeProfiles(new LinkedHashSet<EmployeeProfile>());
+		if(INTERNALLYPERSIST) entityManager.persist(student);
+		return student;
+	}
+	
+	/**
+	 * getStudent method: Obtains the student through a student's assumed-ly unique Student ID.
+	 * @param 	studentId 
+	 * @return	Student object persisting in the database
+	 */
+	@Transactional
+	public Student getStudent(long studentId) {
+		//Safety
+		if(studentId==0)
+			throw new IllegalStateException("getStudent method parametre \'student\' can't be 0, no?");
+		//Returns
+		return entityManager.find(Student.class, studentId);
+	}
+	
+	
+	
+	/*
+	 * =================================================================================================================
+	 * 
+	 * 		METHODS FOR EmployeeProfile ENTITIES
+	 * 
+	 * =================================================================================================================
+	 */
+	
+	/**
+	 * createEmployeeProfile method: Creates a new EmployeeProfile persisted in the database.
+	 * 	A prerequisite of the relationship between employee and employer is that they have a contract!
+	 * @param 	student		as a Student object
+	 * @param 	employer	as an Employer object
+	 * @param 	contract	as a Contract object
+	 * @return 	profile as an EmployeeProfile object persisting in the database.
+	 */
+	@Transactional
+	public EmployeeProfile createEmployeeProfile(Student student, Employer employer, 
+			EmploymentContract contract, LocalDate startDate, LocalDate endDate) 
+	{
+		//Safety
+		if(student==null)
+			throw new NullPointerException("createEmployeeProfile argument \'student\' can\'t be null!");
+		if(employer==null)
+			throw new NullPointerException("createEmployeeProfile argument \'employer\' can\'t be null!");
+		if(contract==null)
+			throw new NullPointerException("createEmployeeProfile argument \'contract\' can\'t be null!"+
+											"We require a contract to start an employeeProfile!");
+		if(startDate==null)
+			throw new NullPointerException("createEmployeeProfile argument \'startDate\' can\'t be null!");
+		if(endDate==null)
+			throw new NullPointerException("createEmployeeProfile argument \'endDate\' can\'t be null!");
+		//Creation
+		EmployeeProfile employeeProfile = new EmployeeProfile();
+		employeeProfile.setStudent(student);
+		employeeProfile.setEmployer(employer);
+		employeeProfile.setContract(contract);
+		employeeProfile.setId(student.getId()+employer.getId());	//Primary Key!
+		employeeProfile.setStartDate(startDate);
+		employeeProfile.setEndDate(endDate);
+		employeeProfile.setStatus(EmploymentStatus.ACTIVE);
+		
+		if(INTERNALLYPERSIST) entityManager.persist(employeeProfile);
+		return employeeProfile;
+	}
+	
+	/**
+	 * getEmployeeProfile method: Obtains the EmployeeProfile if it persists in the database.
+	 * @param 	student		as a Student object
+	 * @param 	employer	as an Employer object
+	 * @return	profile as an EmployeePrifle object that persists in the database.
+	 */
+	@Transactional
+	public EmployeeProfile getEmployeeProfile(Student student, Employer employer) {
+		//Safety
+		if(student==null)
+			throw new NullPointerException("getEmployeeProfile argument \'student\' can\'t be null!");
+		if(employer==null)
+			throw new NullPointerException("getEmployeeProfile argument \'employer\' can\'t be null!");
+		//Returns
+		return entityManager.find(EmployeeProfile.class, student.getId()+employer.getId());
+	}
+	
+	
+	
+	/*
+	 * =================================================================================================================
+	 * 
+	 * 		METHODS FOR Event ENTITIES
+	 * 
+	 * =================================================================================================================
+	 */
+	
+	/**
+	 * helper getSocialEventId: generates a unique eventId based on elements that make events unique.
+	 * @param 	name		of the event as a String which is assumed to be not null
+	 * @param 	location	of the event as a String which is assumed to be not null
+	 * @param 	startDate	of the event as a java.sql.Date object which is assumed to be not null
+	 * @param 	startTime	of the event as a java.sql.Time object which is assumed to be not null
+	 * @return	eventId 	as a long value.
+	 */
+	private static Long getSocialEventId(String name, String location, LocalDate startDate, LocalTime startTime) {
+		//Returns
+		return (long)( name.hashCode() + location.hashCode() + startDate.hashCode() + startTime.hashCode() );
+	}
+	
+	/**
+	 * createSocialEvent method: Creates a social event that is persisted in the database.
+	 * @param 	name		of the event as a String
+	 * @param 	description	of the event as a String
+	 * @param 	location	of the event as a String
+	 * @param 	startDate	of the event as a java.sql.Date object
+	 * @param 	startTime	of the event as a java.sql.Time object
+	 * @param 	endDate		of the event as a java.sql.Date object
+	 * @param 	endTime		of the event as a java.sql.Time object
+	 * @return	event 		as a SocialEvent object
+	 */
+	@Transactional
+	public SocialEvent createSocialEvent(String name, String description, String location, 
+			LocalDate startDate, LocalTime startTime, LocalDate endDate, LocalTime endTime ) 
+	{
+		//Safety
+		if(name==null)
+			throw new NullPointerException("createSocialEvent argument \'name\' is null.");
+		if(name.equals(""))
+			throw new IllegalStateException("createSocialEvent argument \'name\' is empty.");
+		if(description==null)
+			throw new NullPointerException("createSocialEvent argument \'description\' is null.");
+		if(description.equals(""))
+			throw new IllegalStateException("createSocialEvent argument \'description\' is empty.");
+		if(location==null)
+			throw new NullPointerException("createSocialEvent argument \'location\' is null.");
+		if(location.equals(""))
+			throw new IllegalStateException("createSocialEvent argument \'location\' is empty.");
+		if(startDate==null)
+			throw new IllegalStateException("createSocailEvent argument \'startDate\' is null.");
+		if(startTime==null)
+			throw new IllegalStateException("createSocailEvent argument \'startTime\' is null.");
+		if(endDate==null)
+			throw new IllegalStateException("createSocailEvent argument \'endDate\' is null.");
+		if(endTime==null)
+			throw new IllegalStateException("createSocailEvent argument \'endTime\' is null.");
+		//Creation
+		SocialEvent event = new SocialEvent();
+		event.setName(name);
+		event.setDescription(description);
+		event.setLocation(location);
+		event.setStartDate(startDate);
+		event.setStartTime(startTime);
+		event.setEndDate(endDate);
+		event.setEndTime(endTime);
+		event.setId( getSocialEventId(name,location,startDate,startTime) );	//Primary Key!
+		event.setInvitations(new LinkedHashSet<Invitation>());
+		if(INTERNALLYPERSIST) entityManager.persist(event);
+		return event;
+	}
+	/**
+	 * helper getSocialEvent: obtains the SocialEvent object persisted in the database according to key information.
+	 * @param 	name		of the event as a String
+	 * @param 	location	of the event as a String
+	 * @param 	startDate	of the event as a java.sql.Date object
+	 * @param 	startTime	of the event as a java.sql.Time object
+	 * @return	event		as a SocialEvent object.
+	 */
+	@Transactional
+	public SocialEvent getSocialEvent(String name, String location, LocalDate startDate, LocalTime startTime) {
+		//Safety
+		if(name==null)
+			throw new NullPointerException("getSocialEvent argument \'name\' is null.");
+		if(name.equals(""))
+			throw new IllegalStateException("getSocialEvent argument \'name\' is empty.");
+		if(location==null)
+			throw new NullPointerException("getSocialEvent argument \'location\' is null.");
+		if(location.equals(""))
+			throw new IllegalStateException("getSocialEvent argument \'location\' is empty.");
+		if(startDate==null)
+			throw new IllegalStateException("getSocialEvent argument \'startDate\' is null.");
+		if(startTime==null)
+			throw new IllegalStateException("getSocialEvent argument \'startTime\' is null.");
+		//Returns
+		return entityManager.find(SocialEvent.class, getSocialEventId(name,location,startDate,startTime) );
+	}
+	
+	
+	
+	/*
+	 * =================================================================================================================
+	 * 
+	 * 		METHODS FOR EmploymentContract ENTITIES
+	 * 
+	 * =================================================================================================================
+	 */
+	
+	/**
+	 * createEmploymentContract method: Creates a persisted EmploymentContract object.
+	 * @param 	name		as a String for the name of the document.
+	 * @param 	uri			as a String for the http GET request URI associated to this file
+	 * @param	fileData	as a byte[] for the byte-array form of the file to be persisted.
+	 * @return	contract	as an EmploymentContract object
+	 */
+	@Transactional
+	public EmploymentContract createEmploymentContract(String name, String uri, byte[] fileData) throws IOException{
+		//Safety
+		if(name==null)
+			throw new NullPointerException("createEmploymentContract argument \'name\' is null.");
+		if(name.equals(""))
+			throw new IllegalStateException("createEmploymentContract argument \'name\' is empty.");
+		if(uri==null)
+			throw new NullPointerException("createEmploymentContract argument \'uri\' is null.");
+		if(uri.equals(""))
+			throw new IllegalStateException("createEmploymentContract argument \'uri\' is empty.");
+		if(fileData == null)
+			throw new NullPointerException("createEmploymentContract argument \'fileData\' is null.");
+		if(fileData.length == 0)
+			throw new IllegalStateException("createEmploymentContract argument \'fileData\' is empty.");
+		//Creation
+		EmploymentContract contract = new EmploymentContract(name,uri,fileData);
+		contract.setVerified(VerificationState.UNVERIFIED);
+		if(INTERNALLYPERSIST) entityManager.persist(contract);
+		return contract;
+	}
+	
+	/**
+	 * getEmploymentContract method: obtains the desired persisted EmploymentContract object in Spring Boot container.
+	 * @param 	name		as a String for the name of the document;
+	 * @param 	uri			as a String for this file's HTTP GET Request
+	 * @return	contract	as an EmploymentContract object.
+	 */
+	@Transactional
+	public EmploymentContract getEmploymentContract(String name, String uri) {
+		//Safety
+		if(name==null)
+			throw new NullPointerException("getEmploymentContract argument \'name\' is null.");
+		if(name.equals(""))
+			throw new IllegalStateException("getEmploymentContract argument \'name\' is empty.");
+		if(uri==null)
+			throw new NullPointerException("getEmploymentContract argument \'uri\' is null.");
+		if(uri.equals(""))
+			throw new IllegalStateException("getEmploymentContract argument \'uri\' is empty.");
+		//Returns
+		return entityManager.find(EmploymentContract.class, name.hashCode() + uri.hashCode() );
+	}
+	
+	
+	
+	/*
+	 * =================================================================================================================
+	 * 
+	 * 		METHODS FOR StudentEvaluationForm ENTITIES
+	 * 
+	 * =================================================================================================================
+	 */
+	
+	/**
+	 * createStudentEvaluationForm method: Creates a persisted StudentEvaluationForm object.
+	 * @param 	name		as a String for the name of the document.
+	 * @param 	uri			as a String for the http GET request URI associated to this file
+	 * @param	fileData	as a byte[] for the byte-array form of the file to be persisted.
+	 * @return	evalForm	as a StudentEvaluationForm object
+	 */
+	@Transactional
+	public StudentEvaluationForm createStudentEvaluationForm(String name, String uri, byte[] fileData) throws IOException {
+		//Safety
+		if(name==null)
+			throw new NullPointerException("createStudentEvaluationForm argument \'name\' is null.");
+		if(name.equals(""))
+			throw new IllegalStateException("createStudentEvaluationForm argument \'name\' is empty.");
+		if(uri==null)
+			throw new NullPointerException("createStudentEvaluationForm argument \'uri\' is null.");
+		if(uri.equals(""))
+			throw new IllegalStateException("createStudentEvaluationForm argument \'uri\' is empty.");
+		if(fileData == null)
+			throw new NullPointerException("createStudentEvaluationForm argument \'fileData\' is null.");
+		if(fileData.length == 0)
+			throw new IllegalStateException("createStudentEvaluationForm argument \'fileData\' is empty.");
+		//Creation
+		StudentEvaluationForm evalForm = new StudentEvaluationForm(name,uri,fileData);
+		if(INTERNALLYPERSIST) entityManager.persist(evalForm);
+		return evalForm;
+	}
+	
+	/**
+	 * getStudentEvaluationForm method: obtains the desired persisted StudentEvaluationForm object the database.
+	 * @param 	name		as a String for the name of the document;
+	 * @param 	uri			as a String for the associated HTTP GET request to obtain this file
+	 * @return	evalForm	as a StudentEvaluationForm object.
+	 */
+	@Transactional
+	public StudentEvaluationForm getStudentEvaluationForm(String name, String uri) {
+		//Safety
+		if(name==null)
+			throw new NullPointerException("getStudentEvaluationForm argument \'name\' is null.");
+		if(name.equals(""))
+			throw new IllegalStateException("getStudentEvaluationForm argument \'name\' is empty.");
+		if(uri==null)
+			throw new NullPointerException("getStudentEvaluationForm argument \'uri\' is null.");
+		if(uri.equals(""))
+			throw new IllegalStateException("getStudentEvaluationForm argument \'uri\' is empty.");
+		//Returns
+		return entityManager.find(StudentEvaluationForm.class, name.hashCode() + uri.hashCode() );
+	}
+	
+	
+	
+	/*
+	 * =================================================================================================================
+	 * 
+	 * 		METHODS FOR TaxForm ENTITIES
+	 * 
+	 * =================================================================================================================
+	 */
+	
+	/**
+	 * createTaxForm method: Creates a persisted TaxForm object.
+	 * @param 	name		as a String for the name of the document.
+	 * @param 	uri			as a String for the http GET request URI associated to this file
+	 * @param	fileData	as a byte[] for the byte-array form of the file to be persisted.
+	 * @param	taxYear		as a short of the year the tax form is valid for.
+	 * @return	taxForm		as a taxForm object
+	 */
+	@Transactional
+	public TaxForm createTaxForm(String name, String uri, byte[] fileData, short taxYear) throws IOException {
+		//Safety
+		if(name==null)
+			throw new NullPointerException("createTaxForm argument \'name\' is null.");
+		if(name.equals(""))
+			throw new IllegalStateException("createTaxForm argument \'name\' is empty.");
+		if(uri==null)
+			throw new NullPointerException("createTaxForm argument \'uri\' is null.");
+		if(uri.equals(""))
+			throw new IllegalStateException("createTaxForm argument \'uri\' is empty.");
+		if(fileData == null)
+			throw new NullPointerException("createTaxForm argument \'fileData\' is null.");
+		if(fileData.length == 0)
+			throw new IllegalStateException("createTaxForm argument \'fileData\' is empty.");
+		if(taxYear==0)
+			throw new IllegalStateException("createTaxForm argument \'taxYear\' was 0. No one taxes for year 0. Is this an error in the database?");
+		//Creation
+		TaxForm taxForm = new TaxForm(name,uri,fileData,taxYear);
+		if(INTERNALLYPERSIST) entityManager.persist(taxForm);
+		return taxForm;
+	}
+	
+	/**
+	 * DEPRECATED
+	 * getTaxForm method: obtains the desired persisted TaxForm object the database.
+	 * @param 	name		as a String for the name of the document;
+	 * @param 	uri			as a String of the HTTP GET request for this file;
+	 * @param	taxYear		as a short of the year the tax form is valid for;
+	 * @return	evalForm	as a TaxForm object.
+	 */
+	@Transactional
+	public TaxForm getTaxForm(String name, String filepath, short taxYear) {
+		//Safety
+		if(name==null)
+			throw new NullPointerException("getTaxForm argument \'name\' is null.");
+		if(name.equals(""))
+			throw new IllegalStateException("getTaxForm argument \'name\' is empty.");
+		if(filepath==null)
+			throw new NullPointerException("getTaxForm argument \'filepath\' is null.");
+		if(filepath.equals(""))
+			throw new IllegalStateException("getTaxForm argument \'filepath\' is empty.");
+		if(taxYear==0)
+			throw new IllegalStateException("getTaxForm argument \'taxYear\' was 0. No one taxes for year 0. Is this an error in the database?");
+		//Returns
+		return entityManager.find(TaxForm.class, name.hashCode() + filepath.hashCode() + taxYear );
+	}
+	
+	
+	
+	/*
+	 * =================================================================================================================
+	 * 
+	 * 		METHODS FOR LoginCredential ENTITIES
+	 * 
+	 * =================================================================================================================
+	 */
+	
+	/**
+	 * createLoginCredentials method: Creates and returns LoginCredentials.
+	 * 	DO NOT USE DIRECTLY AS A SERVICE; LoginCredentials OBJECTS SHOULD NEVER LEAVE THE SYSTEM.
+	 * @param username	as a String;
+	 * @param password	as a String;
+	 * @param user		as a CoOperatorUser; and
+	 * @return	LoginCredentials object to allow for persisting in CRUD Repositories.
+	 */
+	@Transactional
+	public LoginCredentials createLoginCredentials( String username, String password, CoOperatorUser user ) {
+		//Safety
+		if(username==null)
+			throw new NullPointerException("createLoginCredentials argument \'username\' was null.");
+		if(username.equals(""))
+			throw new IllegalStateException("createLoginCredentials argument \'username\' was empty.");
+		if(password==null)
+			throw new NullPointerException("createLoginCredentials argument \'password\' was null.");
+		if(password.equals(""))
+			throw new IllegalStateException("createLoginCredentials argument \'password\' was empty.");
+		if(user==null)
+			throw new NullPointerException("createLoginCredentials argument \'user\' was null.");
+		//Creation
+		LoginCredentials loginCredentials = new LoginCredentials(user,username,password);
+		if(INTERNALLYPERSIST) entityManager.persist(loginCredentials);
+		return loginCredentials;
+	}
+	/**
+	 * checkLoginCredentialsUsernameExists method: Checks if the provided username exists.
+	 * @param username	as a String;
+	 * @return exists	as a boolean.
+	 */
+	@Transactional
+	public boolean checkLoginCredentialsUsernameExists( String username ) {
+		//Safety
+		if(username==null)
+			throw new NullPointerException("checkLoginCredentialsUsernameExists argument \'username\' was null.");
+		if(username.equals(""))
+			throw new IllegalStateException("checkLoginCredentialsUsernameExists argument \'username\' was empty.");
+		//Returns
+		if( entityManager.find(LoginCredentials.class, username) != null ) return true;
+		return false;
+	}
+	/**
+	 * attemptAccess method: If the username and password are valid, provides the CoOperatorUser associated to
+	 * 	the provided login credentials. Returns null, otherwise.
+	 * @param username	as a String;
+	 * @param password	as a String; and
+	 * @return	key		as a CoOperatorUser (null if the username and or password are not valid).
+	 */
+	@Transactional
+	public CoOperatorUser attemptAccess( String username, String password ) {
+		//Input sanity check
+		if(username==null)
+			throw new NullPointerException("attemptAccess argument \'username\' was null.");
+		if(username.equals(""))
+			throw new IllegalStateException("attemptAccess argument \'username\' was empty.");
+		if(password==null)
+			throw new NullPointerException("attemptAccess argument \'password\' was null.");
+		if(password.equals(""))
+			throw new IllegalStateException("attemptAccess argument \'password\' was empty.");
+		//Find, if it exists, a LoginCredentials with the provided username.
+		LoginCredentials key = entityManager.find(LoginCredentials.class, username);
+		//If there's no match, deny key.
+		if( key == null )
+			return null;
+		//Return the CoOperatorUser is the username and password is deemed valid. Null, otherwise.
+		return key.attemptAccess(username, password);
+	}
+	
+	
+	/*
+	 * =================================================================================================================
+	 * 
+	 * 		METHODS FOR Invitation ENTITIES
+	 * 
+	 * =================================================================================================================
+	 */
+	
+	//SETTERS
+	/**
+	 * createInvitation method: Creates and Returns a Invitation object based on input. Persisted by EntityManager if
+	 * 	and only if INTERNALLYPERSIST is set to its default, true.
+	 * @param socialEvent	as a SocialEvent object;
+	 * @param employer		as an Employer object; and
+	 * @return	invitation	as an Invitation object.
+	 */
+	
+	/*
+	 * TODO: Add methods for the Invitations, AttendingStatus tables in the database
+	 */
+	@Transactional
+	public Invitation createInvitation( SocialEvent socialEvent, Employer employer ) {
+		//Safety
+		if(socialEvent==null)
+			throw new NullPointerException("createInvitation argument \'socialEvent\' was null.");
+		if(employer==null)
+			throw new NullPointerException("createInvitation argument \'employer\' was null.");
+		//Creation
+		Invitation invitation = new Invitation();
+		invitation.setEmployer(employer);
+		invitation.setSocialEvent(socialEvent);
+		invitation.setId(socialEvent.getId()+employer.getId());
+		invitation.setStatus(AttendanceStatus.UNKNOWN);
+		if(INTERNALLYPERSIST) entityManager.persist(invitation);
+		return invitation;
+	}
+	
+	//GETTERS
+	/**
+	 * getInvitation method: Returns the Invitation associated to a particular id, if it exists.
+	 * @param 	id			as a long; and
+	 * @return 	Invitation	as an Invitation object.
+	 */
+	@Transactional
+	public Invitation getInvitation( long id ) {
+		//Safety
+		if(id==0)
+			throw new IllegalStateException("input id was 0. Was this some id generation error?");
+		//Returns
+		return entityManager.find(Invitation.class, id);
+	}
+	/**
+	 * getInvitation method: Returns the Invitation between a SocialEvent and an Employer, if it exists.
+	 * @param 	socialEvent		as a SocialEvent object;
+	 * @param 	employer		as an Employer object; and
+	 * @return	invitation		as an Invitation object.
+	 */
+	@Transactional
+	public Invitation getInvitation( SocialEvent socialEvent, Employer employer ) {
+		//Safety
+		if(socialEvent==null)
+			throw new NullPointerException("createInvitation argument \'socialEvent\' was null.");
+		if(employer==null)
+			throw new NullPointerException("createInvitation argument \'employer\' was null.");
+		//Returns
+		return entityManager.find(Invitation.class, socialEvent.getId() + employer.getId() );
+	}
+	
+}

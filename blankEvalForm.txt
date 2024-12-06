@@ -1,0 +1,11 @@
+Student Name : 
+Company : 
+Dates of employ : 
+Rate student from 1 - 5 (or in exceptional cases, 0 - 5) on the following categories : 
+Punctuality 
+Communication 
+Quality of work 
+Speed of work 
+Office presence
+How many times they brought candy/sweets into work 
+Thank you! 

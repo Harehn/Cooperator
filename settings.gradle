@@ -1,0 +1,3 @@
+rootProject.name = 'cooperator9'
+
+include 'Backend', 'WebFrontEnd'
